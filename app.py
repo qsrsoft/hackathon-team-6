@@ -1,11 +1,12 @@
 from pathlib import Path
 
 from flask import Flask, jsonify, request
+from flask_cors import CORS
 
 from lib.paper_form import convert_form
 
 app = Flask(__name__)
-
+CORS(app)
 
 @app.route('/image', methods=['POST'])
 def from_image():
@@ -54,7 +55,7 @@ def from_image():
 
         try:
             # Convert the form
-            form_output = convert_form(str(temp_path))
+            form_output = convert_form(str(temp_path), 'output.json')
 
             return jsonify({
                 'success': True,
@@ -86,4 +87,4 @@ def health_check():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=6000)
+    app.run(debug=True, host='0.0.0.0', port=5000)
