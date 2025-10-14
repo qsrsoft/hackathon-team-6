@@ -428,52 +428,59 @@ radio and select use the options. Each option needs a title and can optionally h
 """
 
 
-def call_claude(prompt, image_path=None):
+def call_claude(prompt, file_path=None):
     """
     Call Claude via Bedrock API.
 
     Args:
         prompt: Text prompt to send
-        image_path: Optional path to image file
+        file_path: Optional path to image or PDF file
 
     Returns:
         Response text from Claude
     """
-    # Build the message content
     content = []
 
-    # Add image if provided
-    if image_path:
-        with open(image_path, 'rb') as f:
-            image_bytes = f.read()
+    if file_path:
+        with open(file_path, 'rb') as f:
+            file_bytes = f.read()
 
-        # Determine media type
-        extension = Path(image_path).suffix.lower()
-        media_type_map = {
-            '.jpg': 'image/jpeg',
-            '.jpeg': 'image/jpeg',
-            '.png': 'image/png',
-            '.gif': 'image/gif',
-            '.webp': 'image/webp'
-        }
-        media_type = media_type_map.get(extension, 'image/jpeg')
+        extension = Path(file_path).suffix.lower()
 
-        content.append({
-            "type": "image",
-            "source": {
-                "type": "base64",
-                "media_type": media_type,
-                "data": base64.b64encode(image_bytes).decode('utf-8')
+        if extension == '.pdf':
+            content.append({
+                "type": "document",
+                "source": {
+                    "type": "base64",
+                    "media_type": "application/pdf",
+                    "data": base64.b64encode(file_bytes).decode('utf-8')
+                }
+            })
+        else:
+            # Handle images
+            media_type_map = {
+                '.jpg': 'image/jpeg',
+                '.jpeg': 'image/jpeg',
+                '.png': 'image/png',
+                '.gif': 'image/gif',
+                '.webp': 'image/webp'
             }
-        })
+            media_type = media_type_map.get(extension, 'image/jpeg')
 
-    # Add text prompt
+            content.append({
+                "type": "image",
+                "source": {
+                    "type": "base64",
+                    "media_type": media_type,
+                    "data": base64.b64encode(file_bytes).decode('utf-8')
+                }
+            })
+
     content.append({
         "type": "text",
         "text": prompt
     })
 
-    # Build request body
     request_body = {
         "anthropic_version": "bedrock-2023-05-31",
         "max_tokens": 4000,
@@ -485,13 +492,11 @@ def call_claude(prompt, image_path=None):
         ]
     }
 
-    # Call Bedrock
     response = bedrock.invoke_model(
         modelId=MODEL_ID,
         body=json.dumps(request_body)
     )
 
-    # Parse response
     response_body = json.loads(response['body'].read())
     response_text = response_body['content'][0]['text']
 
@@ -534,9 +539,8 @@ def analyze_form(image_path):
     """
     print(f"Step 1: Analyzing form image at {image_path}...")
 
-    response = call_claude(ANALYZER_PROMPT, image_path=image_path)
+    response = call_claude(ANALYZER_PROMPT, file_path=image_path)
 
-    # Clean up any markdown formatting
     json_response = clean_json_response(response)
 
     print("\nField specifications extracted:")
