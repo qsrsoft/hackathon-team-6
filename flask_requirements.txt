@@ -1,0 +1,14 @@
+# Core dependencies
+flask>=2.3.0
+flask-cors>=4.0.0
+requests>=2.31.0
+
+# Bedrock and Strands dependencies
+strands-agents
+strands-agents-tools
+boto3
+bedrock-agentcore<=0.1.5
+bedrock-agentcore-starter-toolkit==0.1.14
+
+# Development and utilities
+uv
