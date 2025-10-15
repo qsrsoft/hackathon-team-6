@@ -4,6 +4,7 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 
 from lib.paper_form import convert_form
+from lib.screenshot import screenshot_url
 
 app = Flask(__name__)
 CORS(app)
@@ -63,6 +64,55 @@ def from_image():
         }), 500
 
 
+@app.route('/link', methods=['POST'])
+def from_url():
+    """
+    Convert a form from a URL by taking a screenshot and processing it.
+
+    Expects JSON body with 'url' parameter.
+    """
+    try:
+        # Get JSON data from request
+        data = request.get_json()
+
+        if not data or 'url' not in data:
+            return jsonify({
+                'success': False,
+                'error': 'No URL provided. Please send JSON with "url" field'
+            }), 400
+
+        url = data['url']
+
+        if not url:
+            return jsonify({
+                'success': False,
+                'error': 'URL cannot be empty'
+            }), 400
+
+        screenshot_path = screenshot_url(url)
+
+        try:
+            form_output = convert_form(screenshot_path)
+
+            return jsonify({
+                'success': True,
+                'results': form_output,
+                'message': 'Form converted successfully from URL'
+            }), 200
+
+        finally:
+            # Clean up: delete the screenshot
+            screenshot_file = Path(screenshot_path)
+            if screenshot_file.exists():
+                screenshot_file.unlink()
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
 @app.route('/health', methods=['GET'])
 def health_check():
     """
@@ -75,4 +125,4 @@ def health_check():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=3000)
+    app.run(debug=True, host='0.0.0.0', port=4000)
